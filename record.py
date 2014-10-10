@@ -155,7 +155,7 @@ except getopt.GetoptError, ex:
 # read command line options
 debug = False
 test = False
-video = '/dev/video1'
+video = '/dev/video0'
 name = ''
 
 for opt, arg in opts:
