@@ -2,6 +2,11 @@
 
 Record a oral presentation in MIT junior lab 8.13, create the web access file, copy both to the server and sent e-mail to te student and the instructors.
 
+## Example
+
+./record.py --name Paus --video /dev/video0
+
+
 ## Requirements
 
 ### Packages
