@@ -76,7 +76,7 @@ def mute():
     os.system(cmd)
     
 def unMute():
-    # after recording unmute se we can hear
+    # after recording unmute so we can hear
 
     cmd =  "amixer set Master unmute >& /dev/null"
     print ' Mute speakers first: ' + cmd
