@@ -144,7 +144,7 @@ print ' Date/Time: ' + dateTime
 # Define string to explain usage of the script
 usage  = "\nUsage: record.py --name=<name>\n"
 
-valid = ['name=','video=','test','debug','help']
+valid = ['name=','video=','recover=','test','debug','help']
 try:
     opts, args = getopt.getopt(sys.argv[1:], "", valid)
 except getopt.GetoptError, ex:
@@ -155,8 +155,9 @@ except getopt.GetoptError, ex:
 # read command line options
 debug = False
 test = False
-video = '/dev/video0'
 name = ''
+recover = ''
+video = '/dev/video0'
 
 for opt, arg in opts:
     if opt == "--help":
@@ -168,6 +169,8 @@ for opt, arg in opts:
         test = True
     if opt == "--name":
         name = arg
+    if opt == "--recover":
+        recover = arg
     if opt == "--video":
         video = arg
 
@@ -187,16 +190,29 @@ if lastName == '':
     print usage
     sys.exit(1)
 
+if recover != '':
+    dateTime = recover
+    print ' RECOVER MODE -- use date: %s'%(dateTime)
+    
 # prepare file name
 
 fileTrunc = '%s-%s-%s'%(lastName,firstName,dateTime)
 print " File trunc: %s"%(fileTrunc)
 print ""
 
-# mute/record/unmute
-mute()
-record(video,fileTrunc)
-unMute()
+if recover != '':
+    print ' RECOVER MODE -- no new recording'
+    print '                 archive: %s'%(archiveDir)
+    print '                 file is: %s'%(fileTrunc)
+    videoFile = archiveDir +'/'+fileTrunc+'.mp4'
+    if os.path.isfile(videoFile):
+        print ' Found file -> recover.'
+        os.system('mv '+videoFile+' ./')
+else:
+    # mute/record/unmute
+    mute()
+    record(video,fileTrunc)
+    unMute()
 
 # for test we stop here
 if test:
@@ -221,6 +237,8 @@ cmd  = "echo \"#!/bin/bash\n"
 cmd += "mail -s 'Your Video is ready %s %s' -c %s %s < %s.eml\" > cmd.sh; chmod 750 cmd.sh"%\
        (firstName,lastName,instructorEmails,email,fileTrunc)
 os.system(cmd)
+os.system('./cmd.sh');
+
 cmd = "scp cmd.sh %s.eml %s@%s:"%(fileTrunc,serverUser,serverHost)
 os.system(cmd)
 cmd = "ssh %s@%s ./cmd.sh"%(serverUser,serverHost)
