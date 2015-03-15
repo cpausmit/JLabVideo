@@ -85,9 +85,18 @@ def unMute():
 def record(video,fileTrunc):    
     # here is the recording using vlc (nice tool)
 
-    cmd = "vlc v4l2://%s :v4l2-standard=NTSC :input-slave=alsa://"%(video) + " :live-caching=300" + \
-          " --sout '#transcode{vcodec=mp4v,acodec=mpga,vb=800,ab=128}" + \
+#    cmd = "cvlc v4l2://%s :v4l-width=1280 :v4l-height=720 :input-slave=alsa://"%(video) + \
+#          ":live-caching=300 --sout '#transcode{vcodec=mp1v,acodec=mpga,vb=800,ab=128}" + \
+#          ":duplicate{dst=display,dst=std{access=file,dst=%s.mp4}}'  "%(fileTrunc)
+#    cmd = "vlc v4l2://%s :v4l2-standard=NTSC :input-slave=alsa://"%(video) + " :live-caching=300" + \
+#          " --sout '#transcode{vcodec=mp1v,acodec=mpga,vb=800,ab=128}" + \
+#          ":duplicate{dst=display,dst=std{access=file,dst=%s.mp4}}' >& /dev/null"%(fileTrunc)
+
+    # I do not really understand the complete set of options available, this one seems to work (it is not HD 16:9)
+    cmd = "vlc v4l2://%s :input-slave=alsa://"%(video) + " :live-caching=600" + \
+          " --sout '#transcode{vcodec=mp4v,acodec=mpga,ab=128}" + \
           ":duplicate{dst=display,dst=std{access=file,dst=%s.mp4}}' >& /dev/null"%(fileTrunc)
+
     print ' Recording: ' + cmd
     print '  --> PLEASE exit the vlc player and let the script complete.\n'
     os.system(cmd)
