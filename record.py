@@ -96,17 +96,60 @@ def record(video,fileTrunc):
     cmd = "vlc v4l2://%s :input-slave=alsa://"%(video) + " :live-caching=600" + \
           " --sout '#transcode{vcodec=mp4v,acodec=mpga,ab=128}" + \
           ":duplicate{dst=display,dst=std{access=file,dst=%s.mp4}}' >& /dev/null"%(fileTrunc)
+    
+    cmd = 'cheese'
 
     print ' Recording: ' + cmd
     print '  --> PLEASE exit the vlc player and let the script complete.\n'
     os.system(cmd)
 
+    cmd = "ls -1rt $HOME/Webcam/*.webm | tail -1"
+    for line in os.popen(cmd).readlines():  # run command
+        line = line[:-1]
+        file = line
+    print " Copy: %s to ./%s.webm"%(file,fileTrunc)
+    cmd = "cp %s ./%s.webm"%(file,fileTrunc)
+    print "       %s"%(cmd)
+    os.system(cmd)
+    
+    
 def showVideo(fileTrunc):    
-    cmd = "vlc %s.mp4 >& /dev/null"%(fileTrunc)
+    cmd = "vlc %s.* >& /dev/null"%(fileTrunc)
     print ' Showing: ' + cmd
     print '  --> PLEASE exit the vlc player and let the script complete.\n'
     os.system(cmd)
 
+def copyToServer(fileTrunc,serverUser,serverHost,serverDir):    
+    # make php template
+    cmd = "cp template.php %s.php"%(fileTrunc)
+    os.system(cmd)
+    # copy the files to our server
+    cmd = "scp %s.* %s@%s:%s"%(fileTrunc,serverUser,serverHost,serverDir)
+    os.system(cmd)
+    url = 'http://%s/jlvideo/%s.php'%(serverHost,fileTrunc)
+    print ' Web page: ' + url
+    return url
+
+def makeEmail(fileTrunc,url,firstName,lastName,email,instructorEmails):
+    cmd = 'echo " Your URL: %s" > url.tmp;cat template.eml url.tmp > %s.eml;rm url.tmp'%(url,fileTrunc)
+    os.system(cmd)
+    cmd  = "echo \"#!/bin/bash\n"
+    cmd += "mail -s 'Your Video is ready %s %s' -c %s %s < %s.eml\" > cmd.sh; chmod 750 cmd.sh"%\
+           (firstName,lastName,instructorEmails,email,fileTrunc)
+    os.system(cmd)
+    
+def sendEmail(fileTrunc,serverUser,serverHost):
+    # local email sent?
+    os.system('./cmd.sh');
+    # send it from remote
+    cmd = "scp cmd.sh %s.eml %s@%s:"%(fileTrunc,serverUser,serverHost)
+    os.system(cmd)
+    cmd = "ssh %s@%s ./cmd.sh"%(serverUser,serverHost)
+    os.system(cmd)
+    # cleanup
+    cmd = "ssh %s@%s rm cmd.sh %s.eml "%(serverUser,serverHost,fileTrunc)
+    os.system(cmd)
+    
 def cleanup(fileTrunc):    
     # cleanup the files created
 
@@ -229,31 +272,12 @@ if test:
     cleanup(fileTrunc)
     sys.exit(0)
 
-# make php template
-cmd = "cp template.php %s.php"%(fileTrunc)
-os.system(cmd)
+# complete files and copy them to server
+url = copyToServer(fileTrunc,serverUser,serverHost,serverDir)
 
-# copy the files to our server
-cmd = "scp %s.* %s@%s:%s"%(fileTrunc,serverUser,serverHost,serverDir)
-os.system(cmd)
-url = 'http://%s/jlvideo/%s.php'%(serverHost,fileTrunc)
-print ' Web page: ' + url
-
-# send the email
-cmd = 'echo " Your URL: %s" > url.tmp;cat template.eml url.tmp > %s.eml;rm url.tmp'%(url,fileTrunc)
-os.system(cmd)
-cmd  = "echo \"#!/bin/bash\n"
-cmd += "mail -s 'Your Video is ready %s %s' -c %s %s < %s.eml\" > cmd.sh; chmod 750 cmd.sh"%\
-       (firstName,lastName,instructorEmails,email,fileTrunc)
-os.system(cmd)
-os.system('./cmd.sh');
-
-cmd = "scp cmd.sh %s.eml %s@%s:"%(fileTrunc,serverUser,serverHost)
-os.system(cmd)
-cmd = "ssh %s@%s ./cmd.sh"%(serverUser,serverHost)
-os.system(cmd)
-cmd = "ssh %s@%s rm cmd.sh %s.eml "%(serverUser,serverHost,fileTrunc)
-os.system(cmd)
+# make and send the email
+makeEmail(fileTrunc,url,firstName,lastName,email,instructorEmails)
+sendEmail(fileTrunc,serverUser,serverHost)
 
 # this needs to be archived
 archive(archiveDir,fileTrunc)
