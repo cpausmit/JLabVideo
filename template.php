@@ -10,7 +10,10 @@
 $fext = ".ap4"; // default
 $fullpath_file= preg_replace("|.php$|","",$_SERVER['PHP_SELF']);
 $avi_file = str_replace("/jlvideo/","",$fullpath_file);
-if (file_exists($avi_file . ".mp4")) {
+
+if (file_exists($avi_file . ".webm")) {
+    $fext = ".webm";
+} else if (file_exists($avi_file . ".mp4")) {
     $fext = ".mp4";
 } else if (file_exists($avi_file . ".avi")) {
     $fext = ".avi";
@@ -38,15 +41,9 @@ echo "<p style=\"font-family: arial;font-size: 28px;font-weight: bold;color:#900
 //echo "<br/>final_file = " . $final_file;
 //echo "<br/>countpath = " . $countpath . "</p>\n";
 
-echo "<p>Videos from this server are in mp4 format with H.264 video and AAC audio.\n";
-echo "<br/>They can be played with QuickTime on Macintosh and Windows machines.\n";
-echo "<br/>On Linux machines, Mplayer and VLC, among others, should play them.</p>\n";
-echo "<p>The files are at the full resolution of the video camera and\n";
-echo "<br/>a 15-minute mp4 video is about 250-300 megabytes.</p>\n";
-echo "<p>Most browsers will play these videos. To stream the video\n";
-echo "<br/>and have your browser play it, just click the link below.\n";
-echo "<br/>To download it to your computer first, right-click the link.</p>\n";
-
+echo "<p>Videos from this server are in formats that can be played with all normal video players.<br>\n";
+echo "Most browsers will play these videos. To stream the video and have your browser play it,<br>\n";
+echo "just left click the link below or right click and download it.<br>\n";
 
 $ldash = strrpos($final_file, "-");
 $short_name = substr($final_file, 0, $ldash);
