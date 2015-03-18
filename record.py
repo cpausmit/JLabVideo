@@ -82,7 +82,7 @@ def unMute():
     print ' Mute speakers first: ' + cmd
     os.system(cmd)
 
-def record(video,fileTrunc):    
+def record(video,cheese,fileTrunc):    
     # here is the recording using vlc (nice tool)
 
 #    cmd = "cvlc v4l2://%s :v4l-width=1280 :v4l-height=720 :input-slave=alsa://"%(video) + \
@@ -92,26 +92,29 @@ def record(video,fileTrunc):
 #          " --sout '#transcode{vcodec=mp1v,acodec=mpga,vb=800,ab=128}" + \
 #          ":duplicate{dst=display,dst=std{access=file,dst=%s.mp4}}' >& /dev/null"%(fileTrunc)
 
-    # I do not really understand the complete set of options available, this one seems to work (it is not HD 16:9)
-    cmd = "vlc v4l2://%s :input-slave=alsa://"%(video) + " :live-caching=600" + \
-          " --sout '#transcode{vcodec=mp4v,acodec=mpga,ab=128}" + \
-          ":duplicate{dst=display,dst=std{access=file,dst=%s.mp4}}' >& /dev/null"%(fileTrunc)
+    # I do not really understand set of options available, this one seems to work (it is not HD 16:9)
+
+    if cheese:
+        cmd = 'cheese'
+    else:
+        cmd = "vlc v4l2://%s :input-slave=alsa://"%(video) + " :live-caching=600" + \
+            " --sout '#transcode{vcodec=mp4v,acodec=mpga,ab=128}" + \
+            ":duplicate{dst=display,dst=std{access=file,dst=%s.mp4}}' >& /dev/null"%(fileTrunc)
     
-    cmd = 'cheese'
 
     print ' Recording: ' + cmd
     print '  --> PLEASE exit the vlc player and let the script complete.\n'
     os.system(cmd)
 
-    cmd = "ls -1rt $HOME/Webcam/*.webm | tail -1"
-    for line in os.popen(cmd).readlines():  # run command
-        line = line[:-1]
-        file = line
-    print " Copy: %s to ./%s.webm"%(file,fileTrunc)
-    cmd = "cp %s ./%s.webm"%(file,fileTrunc)
-    print "       %s"%(cmd)
-    os.system(cmd)
-    
+    if cheese:
+        cmd = "ls -1rt $HOME/Webcam/*.webm | tail -1"
+        for line in os.popen(cmd).readlines():  # run command
+            line = line[:-1]
+            file = line
+        print " Copy: %s to ./%s.webm"%(file,fileTrunc)
+        cmd = "cp %s ./%s.webm"%(file,fileTrunc)
+        print "       %s"%(cmd)
+        os.system(cmd)
     
 def showVideo(fileTrunc):    
     cmd = "vlc %s.* >& /dev/null"%(fileTrunc)
@@ -131,25 +134,28 @@ def copyToServer(fileTrunc,serverUser,serverHost,serverDir):
     return url
 
 def makeEmail(fileTrunc,url,firstName,lastName,email,instructorEmails):
-    cmd = 'echo " Your URL: %s" > url.tmp;cat template.eml url.tmp > %s.eml;rm url.tmp'%(url,fileTrunc)
+    cmd = 'echo " Your URL: %s" > url.tmp;cat template.eml url.tmp > %s.eml;rm url.tmp'%\
+          (url,fileTrunc)
     os.system(cmd)
     cmd  = "echo \"#!/bin/bash\n"
     cmd += "mail -s 'Your Video is ready %s %s' -c %s %s < %s.eml\" > cmd.sh; chmod 750 cmd.sh"%\
            (firstName,lastName,instructorEmails,email,fileTrunc)
     os.system(cmd)
     
-def sendEmail(fileTrunc,serverUser,serverHost):
+def sendEmail(fileTrunc,localEmail,serverUser,serverHost):
     # local email sent?
-    os.system('./cmd.sh');
+    if localEmail:
+        os.system('./cmd.sh');
     # send it from remote
-    cmd = "scp cmd.sh %s.eml %s@%s:"%(fileTrunc,serverUser,serverHost)
-    os.system(cmd)
-    cmd = "ssh %s@%s ./cmd.sh"%(serverUser,serverHost)
-    os.system(cmd)
-    # cleanup
-    cmd = "ssh %s@%s rm cmd.sh %s.eml "%(serverUser,serverHost,fileTrunc)
-    os.system(cmd)
-    
+    else:
+        cmd = "scp cmd.sh %s.eml %s@%s:"%(fileTrunc,serverUser,serverHost)
+        os.system(cmd)
+        cmd = "ssh %s@%s ./cmd.sh"%(serverUser,serverHost)
+        os.system(cmd)
+        # cleanup
+        cmd = "ssh %s@%s rm cmd.sh %s.eml "%(serverUser,serverHost,fileTrunc)
+        os.system(cmd)
+        
 def cleanup(fileTrunc):    
     # cleanup the files created
 
@@ -196,7 +202,7 @@ print ' Date/Time: ' + dateTime
 # Define string to explain usage of the script
 usage  = "\nUsage: record.py --name=<name>\n"
 
-valid = ['name=','video=','recover=','test','debug','help']
+valid = ['name=','video=','recover=','debug','cheese','localEmail','test','help']
 try:
     opts, args = getopt.getopt(sys.argv[1:], "", valid)
 except getopt.GetoptError, ex:
@@ -206,6 +212,8 @@ except getopt.GetoptError, ex:
 
 # read command line options
 debug = False
+cheese = False
+localEmail = False
 test = False
 name = ''
 recover = ''
@@ -217,6 +225,10 @@ for opt, arg in opts:
         sys.exit(0)
     if opt == "--debug":
         debug = True
+    if opt == "--localEmail":
+        localEmail = True
+    if opt == "--cheese":
+        cheese = True
     if opt == "--test":
         test = True
     if opt == "--name":
@@ -263,7 +275,7 @@ if recover != '':
 else:
     # mute/record/unmute
     mute()
-    record(video,fileTrunc)
+    record(video,cheese,fileTrunc)
     unMute()
 
 # for test we stop here
@@ -277,7 +289,7 @@ url = copyToServer(fileTrunc,serverUser,serverHost,serverDir)
 
 # make and send the email
 makeEmail(fileTrunc,url,firstName,lastName,email,instructorEmails)
-sendEmail(fileTrunc,serverUser,serverHost)
+sendEmail(fileTrunc,localEmail,serverUser,serverHost)
 
 # this needs to be archived
 archive(archiveDir,fileTrunc)
