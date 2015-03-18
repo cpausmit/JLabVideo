@@ -6,7 +6,7 @@
 #
 # Requirements:
 #
-# - install vlc and the relevant packages for ACC (mp4) codec support
+# - install vlc, cheese and the relevant packages for ACC (mp4) codec support
 #
 # - put your public key (usually $HOME/.ssh/id_rsa.pub) into
 #       the server file (serverUser@serverHost:.ssh/authorized_keys)
