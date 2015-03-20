@@ -1,53 +1,59 @@
 <?php
 
-// File:   lookup.php
-// Date:   February 1, 2005
-// Author: P. Ragsdale - ragsdale@mit.edu
-// Special thanks to I. Chuang <ike@media.mit.edu>
-// Revised October 10, 2012 by J.D. Litster for VLC on jlvideo-2
-// and again in April 2014 for EyeTV on a Macintosh
+$extension = ".ap4"; // unimportant default
 
-$fext = ".ap4"; // default
-$fullpath_file= preg_replace("|.php$|","",$_SERVER['PHP_SELF']);
-$avi_file = str_replace("/jlvideo/","",$fullpath_file);
+$fullFileTrunc = preg_replace("|.php$|","",$_SERVER['PHP_SELF']);
+$fileTrunc = str_replace("/jlvideo/","",$fullFileTrunc);
 
-if (file_exists($avi_file . ".webm")) {
-    $fext = ".webm";
-} else if (file_exists($avi_file . ".mp4")) {
-    $fext = ".mp4";
-} else if (file_exists($avi_file . ".avi")) {
-    $fext = ".avi";
-} else if (file_exists($avi_file . ".mpg")) {
-    $fext = ".mpg";
+// Find out which type of video file was produced and determine the file name
+
+if (file_exists($fileTrunc . ".webm")) {
+    $extension = ".webm";
+} else if (file_exists($fileTrunc . ".mp4")) {
+    $extension = ".mp4";
+} else if (file_exists($fileTrunc . ".avi")) {
+    $extension = ".avi";
+} else if (file_exists($fileTrunc . ".mpg")) {
+    $extension = ".mpg";
 }
+$file = $fileTrunc . $extension;
 
-$base_directory = basename(dirname($_SERVER['PHP_SELF']));
-$final_file = $avi_file . $fext;
+// Get the base directory on our server
 
-//print "\n" . $final_file+"\n";
-
+//$dir = basename(dirname($_SERVER['PHP_SELF']));
 $dp = opendir(".");
 $pwd = getcwd();
 $countpath = ereg_replace("/","_",$pwd);
 $countpath = str_replace("/","_",$pwd);
 $countpath = "dir$countpath";
+
+// Write the html header
+
 echo "<!DOCTYPE html><html><head></head><body bgcolor=\"#CCCCCC\">\n";
-
 echo "<p style=\"font-family: arial;font-size: 28px;font-weight: bold;color:#900000;\">
-<img src=\"mit-greywhite-footer3.gif\"> Junior Lab Orals Video</p>\n";
+      <img src=\"mit-greywhite-footer3.gif\"> Junior Lab Orals Video</p>\n";
 
-//echo "<p>fullpath_file = " . $fullpath_file;
-//echo "<br/>avi_file = " . $avi_file;
-//echo "<br/>final_file = " . $final_file;
-//echo "<br/>countpath = " . $countpath . "</p>\n";
+// Debugging output
+//
+//echo "<p>fullFile Trunc = " . $fullFileTrunc;
+//echo "<br/>file Trunc   = " . $fileTrunc;
+//echo "<br/>file         = " . $file;
+//echo "<br/>countpath    = " . $countpath . "</p>\n";
 
-echo "<p>Videos from this server are in formats that can be played with all normal video players.<br>\n";
+// Core text for the file
+
+echo "<p>\n"
+echo "Videos from this server are in formats that can be played with all normal video players.<br>\n";
 echo "Most browsers will play these videos. To stream the video and have your browser play it,<br>\n";
-echo "just left click the link below or right click and download it.<br>\n";
+echo "left-click the link below or right-click and download it.<br>\n";
 
-$ldash = strrpos($final_file, "-");
-$short_name = substr($final_file, 0, $ldash);
-echo "<h3>Link: <a href=$final_file>$short_name</a></h3>\n";
+// Write the file link
+
+$ldash = strrpos($file,"-");
+$name = substr($file, 0, $ldash);
+echo "<h3>Link: <a href=$file>$name</a></h3>\n";
+
+// Write the html footer
 
 echo "</body></html>";
 exit();
