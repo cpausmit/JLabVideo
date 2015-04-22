@@ -120,6 +120,11 @@ def copyToServer(fileTrunc,serverUser,serverHost,serverDir):
     # make php template
     cmd = "cp template.php %s.php"%(fileTrunc)
     os.system(cmd)
+    # list them
+    print ""
+    cmd = "ls -lhrt %s.*"%(fileTrunc)
+    os.system(cmd)
+    print ""
     # copy the files to our server
     cmd = "scp %s.* %s@%s:%s"%(fileTrunc,serverUser,serverHost,serverDir)
     os.system(cmd)
