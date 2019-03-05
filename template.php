@@ -1,56 +1,61 @@
 <?php
 
-// File:   lookup.php
-// Date:   February 1, 2005
-// Author: P. Ragsdale - ragsdale@mit.edu
-// Special thanks to I. Chuang <ike@media.mit.edu>
-// Revised October 10, 2012 by J.D. Litster for VLC on jlvideo-2
-// and again in April 2014 for EyeTV on a Macintosh
+$debug = 0;
+$extension = ".ap4"; // unimportant default
 
-$fext = ".ap4"; // default
-$fullpath_file= preg_replace("|.php$|","",$_SERVER['PHP_SELF']);
-$avi_file = str_replace("/jlvideo/","",$fullpath_file);
-if (file_exists($avi_file . ".mp4")) {
-    $fext = ".mp4";
-} else if (file_exists($avi_file . ".avi")) {
-    $fext = ".avi";
-} else if (file_exists($avi_file . ".mpg")) {
-    $fext = ".mpg";
+$fullFileTrunc = preg_replace("|.php$|","",$_SERVER['PHP_SELF']);
+$fileTrunc = str_replace("/jlvideo/","",$fullFileTrunc);
+
+// Find out which type of video file was produced and determine the file name
+
+if (file_exists($fileTrunc . ".webm")) {
+    $extension = ".webm";
+} else if (file_exists($fileTrunc . ".mp4")) {
+    $extension = ".mp4";
+} else if (file_exists($fileTrunc . ".avi")) {
+    $extension = ".avi";
+} else if (file_exists($fileTrunc . ".mpg")) {
+    $extension = ".mpg";
+}
+$file = $fileTrunc . $extension;
+
+// Write the html header
+
+echo "<!DOCTYPE html><html><head></head>";
+echo "<style>";
+echo "a:link    {color:#000000; background-color:transparent; text-decoration:none}";
+echo "a:visited {color:#009000; background-color:transparent; text-decoration:none}";
+echo "a:hover   {color:#900000; background-color:transparent; text-decoration:underline}";
+echo "a:active  {color:#900000; background-color:transparent; text-decoration:underline}";
+echo "body.ex   {margin-top: 0px; margin-bottom: 25px; margin-right: 25px; margin-left: 25px;}";
+echo "</style>";
+echo "<body class=\"ex\" bgcolor=\"#EEEEEE\">\n";
+echo "<p style=\"font-family: arial;font-size: 28px;font-weight: bold;color:#900000;\">
+      <img src=\"mit-logo.png\" height=\"40\"> Video of a Junior Lab Oral</p>\n";
+
+// Core text for the file
+
+echo "<p style=\"font-family: arial;font-size: 18px;font-weight: medium;color:#404040;\">\n";
+echo "Videos from this server are in formats that can be played with all normal video players.<br>\n";
+echo "Most browsers will play these videos. To stream the video and have your browser play it,<br>\n";
+echo "left-click the link below or right-click and download it.<br>\n";
+
+// Write the file link
+
+echo "<p style=\"font-family: arial;font-size: 18px;font-weight:medium;color:#009000;\">\n";
+echo "<a href=$file>$file</a>\n";
+
+// Debugging output
+
+if ($debug>0) {
+  echo "<p style=\"font-family: arial;font-size: 18px;font-weight: medium;color:#007000;\">\n";
+  echo "== Debugging ==<br/>";
+  echo "<br/>fullFile Trunc = " . $fullFileTrunc;
+  echo "<br/>file Trunc     = " . $fileTrunc;
+  echo "<br/>file           = " . $file;
 }
 
-$base_directory = basename(dirname($_SERVER['PHP_SELF']));
-$final_file = $avi_file . $fext;
-
-//print "\n" . $final_file+"\n";
-
-$dp = opendir(".");
-$pwd = getcwd();
-$countpath = ereg_replace("/","_",$pwd);
-$countpath = str_replace("/","_",$pwd);
-$countpath = "dir$countpath";
-echo "<!DOCTYPE html><html><head></head><body bgcolor=\"#CCCCCC\">\n";
-
-echo "<p style=\"font-family: arial;font-size: 28px;font-weight: bold;color:#900000;\">
-<img src=\"mit-greywhite-footer3.gif\"> Junior Lab Orals Video</p>\n";
-
-//echo "<p>fullpath_file = " . $fullpath_file;
-//echo "<br/>avi_file = " . $avi_file;
-//echo "<br/>final_file = " . $final_file;
-//echo "<br/>countpath = " . $countpath . "</p>\n";
-
-echo "<p>Videos from this server are in mp4 format with H.264 video and AAC audio.\n";
-echo "<br/>They can be played with QuickTime on Macintosh and Windows machines.\n";
-echo "<br/>On Linux machines, Mplayer and VLC, among others, should play them.</p>\n";
-echo "<p>The files are at the full resolution of the video camera and\n";
-echo "<br/>a 15-minute mp4 video is about 250-300 megabytes.</p>\n";
-echo "<p>Most browsers will play these videos. To stream the video\n";
-echo "<br/>and have your browser play it, just click the link below.\n";
-echo "<br/>To download it to your computer first, right-click the link.</p>\n";
-
-
-$ldash = strrpos($final_file, "-");
-$short_name = substr($final_file, 0, $ldash);
-echo "<h3>Link: <a href=$final_file>$short_name</a></h3>\n";
+// Write the html footer
 
 echo "</body></html>";
 exit();

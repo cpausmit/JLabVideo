@@ -35,3 +35,8 @@ Describes all relevant parameters for the server where the video recordings get 
 All lists to describe the class
 * instructors - csv file with instructors (email,lastName,firstName)
 * students - csv file with students (email,lastName,firstName)
+
+### [Video]
+Parameters used to configure the video
+* device - which device is used: /dev/video0, etc.
+* cheese - if 'True' cheese is used as a video recording tool (less integrated but more reliable)

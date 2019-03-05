@@ -2,11 +2,11 @@
 #====================================================================================================
 #
 # Record a oral presentation in MIT junior lab 8.13, create the web access file, copy both to the
-# server and sent e-mail to te student and the instructors.
+# server and sent e-mail to the student and the instructors.
 #
 # Requirements:
 #
-# - install vlc and the relevant packages for ACC (mp4) codec support
+# - install vlc, cheese and the relevant packages for ACC (mp4) codec support
 #
 # - put your public key (usually $HOME/.ssh/id_rsa.pub) into
 #       the server file (serverUser@serverHost:.ssh/authorized_keys)
@@ -82,22 +82,79 @@ def unMute():
     print ' Mute speakers first: ' + cmd
     os.system(cmd)
 
-def record(video,fileTrunc):    
-    # here is the recording using vlc (nice tool)
+def record(device,cheese,fileTrunc):    
+    # here is the recording using vlc (nice tool) or the minimalistic cheese program
 
-    cmd = "vlc v4l2://%s :v4l2-standard=NTSC :input-slave=alsa://"%(video) + " :live-caching=300" + \
-          " --sout '#transcode{vcodec=mp4v,acodec=mpga,vb=800,ab=128}" + \
-          ":duplicate{dst=display,dst=std{access=file,dst=%s.mp4}}' >& /dev/null"%(fileTrunc)
+    # I do not really understand set of options available, this one seems to work (it is not HD 16:9)
+
+    if cheese:
+        cmd = 'cheese'
+    else:
+        cmd = "vlc v4l2://%s :input-slave=alsa://"%(device) + " :live-caching=600" + \
+              " --sout '#transcode{vcodec=mp4v,acodec=mpga,ab=128}" + \
+              ":duplicate{dst=display,dst=std{access=file,dst=%s.mp4}}' >& /dev/null"%(fileTrunc)
+    
+
     print ' Recording: ' + cmd
     print '  --> PLEASE exit the vlc player and let the script complete.\n'
     os.system(cmd)
 
+    # For cheese we need to find the file that was recorded and copy it to the right place
+    if cheese:
+        cmd = "ls -1rt $HOME/Webcam/*.webm | tail -1"
+        for line in os.popen(cmd).readlines():  # run command
+            line = line[:-1]
+            file = line
+        print " Copy: %s to ./%s.webm"%(file,fileTrunc)
+        cmd = "cp %s ./%s.webm"%(file,fileTrunc)
+        print "       %s"%(cmd)
+        os.system(cmd)
+    
 def showVideo(fileTrunc):    
-    cmd = "vlc %s.mp4 >& /dev/null"%(fileTrunc)
+    cmd = "vlc %s.* >& /dev/null"%(fileTrunc)
     print ' Showing: ' + cmd
     print '  --> PLEASE exit the vlc player and let the script complete.\n'
     os.system(cmd)
 
+def copyToServer(fileTrunc,serverUser,serverHost,serverDir):    
+    # make php template
+    cmd = "cp template.php %s.php"%(fileTrunc)
+    os.system(cmd)
+    # list them
+    print ""
+    cmd = "ls -lhrt %s.*"%(fileTrunc)
+    os.system(cmd)
+    print ""
+    # copy the files to our server
+    cmd = "scp %s.* %s@%s:%s"%(fileTrunc,serverUser,serverHost,serverDir)
+    os.system(cmd)
+    url = 'http://%s/jlvideo/%s.php'%(serverHost,fileTrunc)
+    print ' Web page: ' + url
+    return url
+
+def makeEmail(fileTrunc,url,firstName,lastName,email,instructorEmails):
+    cmd = 'echo " Your URL: %s" > url.tmp;cat template.eml url.tmp > %s.eml;rm url.tmp'%\
+          (url,fileTrunc)
+    os.system(cmd)
+    cmd  = "echo \"#!/bin/bash\n"
+    cmd += "mail -s 'Your Video is ready %s %s' -c %s %s < %s.eml\" > cmd.sh; chmod 750 cmd.sh"%\
+           (firstName,lastName,instructorEmails,email,fileTrunc)
+    os.system(cmd)
+    
+def sendEmail(fileTrunc,localEmail,serverUser,serverHost):
+    # local email sent?
+    if localEmail:
+        os.system('./cmd.sh');
+    # send it from remote
+    else:
+        cmd = "scp cmd.sh %s.eml %s@%s:"%(fileTrunc,serverUser,serverHost)
+        os.system(cmd)
+        cmd = "ssh %s@%s ./cmd.sh"%(serverUser,serverHost)
+        os.system(cmd)
+        # cleanup
+        cmd = "ssh %s@%s rm cmd.sh %s.eml "%(serverUser,serverHost,fileTrunc)
+        os.system(cmd)
+        
 def cleanup(fileTrunc):    
     # cleanup the files created
 
@@ -115,6 +172,14 @@ def archive(archiveDir,fileTrunc):
 #===================================================================================================
 # M A I N
 #===================================================================================================
+# command line options and their defaults
+debug = False
+cheese = False
+localEmail = False
+test = False
+name = ''
+recover = ''
+device = '/dev/video0'
 
 # Read the configuration file
 config = ConfigParser.RawConfigParser()
@@ -132,6 +197,10 @@ print " Server: %s@%s => %s"%(serverUser,serverHost,serverDir)
 classFilesInstructors = config.get('ClassFiles','instructors')
 classFilesStudents = config.get('ClassFiles','students')
 print " Class Files: %s, %s"%(classFilesInstructors,classFilesStudents)
+
+cheese = config.getboolean('Video','cheese')
+device = config.get('Video','device')
+print " Video options: cheese=%s, device=%s"%(cheese,device)
 print ""
 
 # make sure to record date and time when we start
@@ -144,7 +213,7 @@ print ' Date/Time: ' + dateTime
 # Define string to explain usage of the script
 usage  = "\nUsage: record.py --name=<name>\n"
 
-valid = ['name=','video=','recover=','test','debug','help']
+valid = ['name=','device=','recover=','debug','cheese','localEmail','test','help']
 try:
     opts, args = getopt.getopt(sys.argv[1:], "", valid)
 except getopt.GetoptError, ex:
@@ -152,27 +221,25 @@ except getopt.GetoptError, ex:
     print str(ex)
     sys.exit(1)
 
-# read command line options
-debug = False
-test = False
-name = ''
-recover = ''
-video = '/dev/video0'
-
+# read all command line options
 for opt, arg in opts:
     if opt == "--help":
         print usage
         sys.exit(0)
     if opt == "--debug":
         debug = True
+    if opt == "--localEmail":
+        localEmail = True
+    if opt == "--cheese":
+        cheese = True
     if opt == "--test":
         test = True
     if opt == "--name":
         name = arg
     if opt == "--recover":
         recover = arg
-    if opt == "--video":
-        video = arg
+    if opt == "--device":
+        device = arg
 
 # basic sanity tests
 if name == '':
@@ -211,7 +278,7 @@ if recover != '':
 else:
     # mute/record/unmute
     mute()
-    record(video,fileTrunc)
+    record(device,cheese,fileTrunc)
     unMute()
 
 # for test we stop here
@@ -220,31 +287,12 @@ if test:
     cleanup(fileTrunc)
     sys.exit(0)
 
-# make php template
-cmd = "cp template.php %s.php"%(fileTrunc)
-os.system(cmd)
+# complete files and copy them to server
+url = copyToServer(fileTrunc,serverUser,serverHost,serverDir)
 
-# copy the files to our server
-cmd = "scp %s.* %s@%s:%s"%(fileTrunc,serverUser,serverHost,serverDir)
-os.system(cmd)
-url = 'http://%s/jlvideo/%s.php'%(serverHost,fileTrunc)
-print ' Web page: ' + url
-
-# send the email
-cmd = 'echo " Your URL: %s" > url.tmp;cat template.eml url.tmp > %s.eml;rm url.tmp'%(url,fileTrunc)
-os.system(cmd)
-cmd  = "echo \"#!/bin/bash\n"
-cmd += "mail -s 'Your Video is ready %s %s' -c %s %s < %s.eml\" > cmd.sh; chmod 750 cmd.sh"%\
-       (firstName,lastName,instructorEmails,email,fileTrunc)
-os.system(cmd)
-os.system('./cmd.sh');
-
-cmd = "scp cmd.sh %s.eml %s@%s:"%(fileTrunc,serverUser,serverHost)
-os.system(cmd)
-cmd = "ssh %s@%s ./cmd.sh"%(serverUser,serverHost)
-os.system(cmd)
-cmd = "ssh %s@%s rm cmd.sh %s.eml "%(serverUser,serverHost,fileTrunc)
-os.system(cmd)
+# make and send the email
+makeEmail(fileTrunc,url,firstName,lastName,email,instructorEmails)
+sendEmail(fileTrunc,localEmail,serverUser,serverHost)
 
 # this needs to be archived
 archive(archiveDir,fileTrunc)
