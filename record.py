@@ -141,18 +141,18 @@ def makeEmail(fileTrunc,url,firstName,lastName,email,instructorEmails):
            (firstName,lastName,instructorEmails,email,fileTrunc)
     os.system(cmd)
     
-def sendEmail(fileTrunc,localEmail,serverUser,serverHost):
+def sendEmail(fileTrunc,localEmail,mailUser,mailHost):
     # local email sent?
     if localEmail:
         os.system('./cmd.sh');
     # send it from remote
     else:
-        cmd = "scp cmd.sh %s.eml %s@%s:"%(fileTrunc,serverUser,serverHost)
+        cmd = "scp cmd.sh %s.eml %s@%s:"%(fileTrunc,mailUser,mailHost)
         os.system(cmd)
-        cmd = "ssh %s@%s ./cmd.sh"%(serverUser,serverHost)
+        cmd = "ssh %s@%s ./cmd.sh"%(mailUser,mailHost)
         os.system(cmd)
         # cleanup
-        cmd = "ssh %s@%s rm cmd.sh %s.eml "%(serverUser,serverHost,fileTrunc)
+        cmd = "ssh %s@%s rm cmd.sh %s.eml "%(mailUser,mailHost,fileTrunc)
         os.system(cmd)
         
 def cleanup(fileTrunc):    
@@ -201,6 +201,12 @@ print " Class Files: %s, %s"%(classFilesInstructors,classFilesStudents)
 cheese = config.getboolean('Video','cheese')
 device = config.get('Video','device')
 print " Video options: cheese=%s, device=%s"%(cheese,device)
+
+mailHost = config.get('Mail','host')
+mailUser = config.get('Mail','user')
+print " Mail: %s@%s"%(mailUser,mailHost)
+
+# done with options
 print ""
 
 # make sure to record date and time when we start
@@ -292,7 +298,7 @@ url = copyToServer(fileTrunc,serverUser,serverHost,serverDir)
 
 # make and send the email
 makeEmail(fileTrunc,url,firstName,lastName,email,instructorEmails)
-sendEmail(fileTrunc,localEmail,serverUser,serverHost)
+sendEmail(fileTrunc,localEmail,mailUser,mailHost)
 
 # this needs to be archived
 archive(archiveDir,fileTrunc)
