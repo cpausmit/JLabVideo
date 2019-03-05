@@ -101,7 +101,7 @@ def record(device,cheese,fileTrunc):
 
     # For cheese we need to find the file that was recorded and copy it to the right place
     if cheese:
-        cmd = "ls -1rt $HOME/Webcam/*.webm | tail -1"
+        cmd = "ls -1rt $HOME/Videos/Webcam/*.webm | tail -1"
         for line in os.popen(cmd).readlines():  # run command
             line = line[:-1]
             file = line
