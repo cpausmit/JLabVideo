@@ -217,7 +217,7 @@ for line in os.popen(cmd).readlines():  # run command
 print ' Date/Time: ' + dateTime
 
 # Define string to explain usage of the script
-usage  = "\nUsage: record.py --name=<name>\n"
+usage  = "\nUsage: record.py --name=<name> [ --recover <date>(=191008-153433) ]\n"
 
 valid = ['name=','device=','recover=','debug','cheese','localEmail','test','help']
 try:
@@ -277,10 +277,11 @@ if recover != '':
     print ' RECOVER MODE -- no new recording'
     print '                 archive: %s'%(archiveDir)
     print '                 file is: %s'%(fileTrunc)
-    videoFile = archiveDir +'/'+fileTrunc+'.mp4'
+    videoFile = archiveDir +'/'+fileTrunc+'.webm'
     if os.path.isfile(videoFile):
         print ' Found file -> recover.'
         os.system('mv '+videoFile+' ./')
+        
 else:
     # mute/record/unmute
     mute()
