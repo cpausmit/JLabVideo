@@ -68,6 +68,26 @@ def getStudent(classFilesStudents,debug):
 
     return (email,lastName,firstName)
 
+def getZoomList(fileName,debug):
+    # get the zoom files per student
+    
+    fileList = {}
+    inputFile = open(fileName,'r')
+    for line in inputFile.xreadlines():
+        if len(line) == 0 or line[0] == '#':
+            continue
+        line = line[0:-1]
+        items = line.split(',')
+        email = items[0]
+        zoomFile = "/home/paus/Documents/Zoom/%s"%(items[1])
+        if debug:
+            print ' Zoomfile(%s): %s'%(email,zoomFile)
+        fileList[email] = zoomFile
+            
+    inputFile.close()
+
+    return fileList
+    
 def mute():
     # before recording please mute (otherwise beeeeeeeeppppp)
 
@@ -139,11 +159,13 @@ def makeEmail(fileTrunc,url,firstName,lastName,email,instructorEmails):
     cmd  = "echo \"#!/bin/bash\n"
     cmd += "mail -s 'Your Video is ready %s %s' -c %s %s < %s.eml\" > cmd.sh; chmod 750 cmd.sh"%\
            (firstName,lastName,instructorEmails,email,fileTrunc)
+    #print "CMD: %s"%(cmd)
     os.system(cmd)
     
 def sendEmail(fileTrunc,localEmail,mailUser,mailHost):
     # local email sent?
     if localEmail:
+        #os.system('cat ./cmd.sh');
         os.system('./cmd.sh');
     # send it from remote
     else:
@@ -175,10 +197,12 @@ def archive(archiveDir,fileTrunc):
 # command line options and their defaults
 debug = False
 cheese = False
-localEmail = False
+localEmail = True
 test = False
 name = ''
 recover = ''
+zoom = ''
+extension = 'mp4'
 device = '/dev/video0'
 
 # Read the configuration file
@@ -200,7 +224,9 @@ print " Class Files: %s, %s"%(classFilesInstructors,classFilesStudents)
 
 cheese = config.getboolean('Video','cheese')
 device = config.get('Video','device')
-print " Video options: cheese=%s, device=%s"%(cheese,device)
+if cheese:
+    extension = 'webm'
+print " Video options: cheese=%s, device=%s (file extension: %s)"%(cheese,device,extension)
 
 mailHost = config.get('Mail','host')
 mailUser = config.get('Mail','user')
@@ -217,9 +243,9 @@ for line in os.popen(cmd).readlines():  # run command
 print ' Date/Time: ' + dateTime
 
 # Define string to explain usage of the script
-usage  = "\nUsage: record.py --name=<name>\n"
+usage  = "\nUsage: record.py --name=<name> [ --zoom <FileList> ] || [ --recover <date>(=191008-153433) ]\n"
 
-valid = ['name=','device=','recover=','debug','cheese','localEmail','test','help']
+valid = ['name=','device=','recover=','zoom=','debug','cheese','localEmail','test','help']
 try:
     opts, args = getopt.getopt(sys.argv[1:], "", valid)
 except getopt.GetoptError, ex:
@@ -244,6 +270,8 @@ for opt, arg in opts:
         name = arg
     if opt == "--recover":
         recover = arg
+    if opt == "--zoom":
+        zoom = arg
     if opt == "--device":
         device = arg
 
@@ -266,6 +294,18 @@ if lastName == '':
 if recover != '':
     dateTime = recover
     print ' RECOVER MODE -- use date: %s'%(dateTime)
+
+if zoom != '':
+    print ' ZOOM MODE -- use date: %s'%(dateTime)
+    zoomList = getZoomList(zoom,debug)
+    print ' Zoom recording(%s): %s'%(email,zoomList[email])
+    rc = os.system("cp %s %s/%s-%s-%s.mp4"%(zoomList[email],archiveDir,lastName,firstName,dateTime))
+    print(" RC: %d"%(rc))
+    if rc != 0:
+        print(" ERROR - recording does not exist: %s"%(zoomList[email]))
+        sys.exit(1)
+    # go automatically to recover mode
+    recover = 'zoom'
     
 # prepare file name
 
@@ -277,10 +317,11 @@ if recover != '':
     print ' RECOVER MODE -- no new recording'
     print '                 archive: %s'%(archiveDir)
     print '                 file is: %s'%(fileTrunc)
-    videoFile = archiveDir +'/'+fileTrunc+'.mp4'
+    videoFile = archiveDir +'/'+fileTrunc+'.'+extension
     if os.path.isfile(videoFile):
         print ' Found file -> recover.'
         os.system('mv '+videoFile+' ./')
+        
 else:
     # mute/record/unmute
     mute()
